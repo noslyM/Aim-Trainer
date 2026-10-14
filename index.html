@@ -223,6 +223,9 @@ kbd{font-family:var(--f-display);background:var(--panel2);border:1px solid var(-
             </div>
             <label class="chk" data-ropt="hs"><input type="checkbox" id="optHsOnly"> Seuls les tirs à la tête comptent</label>
             <label class="chk" data-ropt="inf"><input type="checkbox" id="optInfAmmo"> Munitions infinies</label>
+            <div class="field"><span class="lbl">Ambiance</span>
+              <div class="seg"><label><input type="radio" name="rtheme" value="light" id="rt1"><span>Claire</span></label><label><input type="radio" name="rtheme" value="dark" id="rt2"><span>Sombre (plus de contraste)</span></label></div>
+            </div>
           </div>
           <label class="chk"><input type="checkbox" id="optFs"> Plein écran au lancement (recommandé plutôt que F11)</label>
           <p class="note">* Performance baisse la résolution et coupe l'anticrénelage. Recharge la page après l'avoir choisie.</p>
@@ -356,7 +359,7 @@ if(!window.THREE){ document.getElementById('lockMsg').textContent = "Le moteur 3
 
 /* ---------------- Réglages ---------------- */
 const DEFAULTS = { sens:0.28, dpi:400, raw:true, correction:1, adsMult:1, adsToggle:false,
-  difficulty:'normal', enemies:4, returnFire:true, fullscreen:true, quality:'auto', showFps:true, enemySpeed:0.85, aspect:'native', chFollow:true, sensS:1, cpc:0, sensV:0,
+  difficulty:'normal', enemies:4, returnFire:true, fullscreen:true, quality:'auto', showFps:true, enemySpeed:0.85, aspect:'native', chFollow:true, rangeTheme:'light', sensS:1, cpc:0, sensV:0,
   range:{mode:'grid',dur:'60',dist:'20',size:'m',move:'strafe',hs:false,inf:true}, best:{}, volume:0.6, highlight:'red', hitmarker:false,
   ch:{color:'#00ffff', len:4, thick:2, gap:3, dot:false, dotSize:3, outline:true} };
 const KEY='valoAimer.v1';
@@ -428,7 +431,7 @@ scene.background = new THREE.Color(0xc5d2dc);
 scene.fog = new THREE.Fog(0xc5d2dc, 50, 150);
 const camera = new THREE.PerspectiveCamera(vfov(gameAspect()), gameAspect(), 0.03, 300);
 camera.rotation.order = 'YXZ';
-scene.add(new THREE.HemisphereLight(0xeef3f8, 0x8a806d, 0.85));
+const hemi=new THREE.HemisphereLight(0xeef3f8, 0x8a806d, 0.85); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff0d8, 0.75); sun.position.set(-30,50,18); scene.add(sun);
 
 function canvasTex(w,h,draw,repeat){
@@ -466,6 +469,18 @@ const wallMat = new THREE.MeshLambertMaterial({map:wallTex});
 const floorMat = new THREE.MeshLambertMaterial({map:floorTex});
 const crateA = new THREE.MeshLambertMaterial({map:crateTex('#4a7d84','#2d545a')});
 const crateB = new THREE.MeshLambertMaterial({map:crateTex('#b5753f','#7c4c25')});
+/* Thème de la practice range : « sombre » assombrit murs, sol, ciel et lumière pour faire ressortir cibles et bots. */
+const THEMES={
+  light:{bg:0xc5d2dc, fogN:50, fogF:150, hemi:0.85, sun:0.75, wall:0xffffff, floor:0xffffff, crate:0xffffff},
+  dark:{bg:0x101418, fogN:40, fogF:130, hemi:0.42, sun:0.38, wall:0x4b5058, floor:0x3c4046, crate:0x6a737a}
+};
+function applyTheme(){
+  const t=THEMES[(mode==='range'&&settings.rangeTheme==='dark')?'dark':'light'];
+  scene.background.setHex(t.bg); scene.fog.color.setHex(t.bg); scene.fog.near=t.fogN; scene.fog.far=t.fogF;
+  hemi.intensity=t.hemi; sun.intensity=t.sun;
+  wallMat.color.setHex(t.wall); floorMat.color.setHex(t.floor); crateA.color.setHex(t.crate); crateB.color.setHex(t.crate);
+  needsRender=true;
+}
 
 const floor = new THREE.Mesh(new THREE.PlaneGeometry(160,200), floorMat);
 floor.rotation.x = -Math.PI/2; floor.position.set(0,0,-20); scene.add(floor);
@@ -1786,7 +1801,7 @@ function setMode(m){
   $('#scenRange').hidden=m!=='range'; $('#rangePanel').hidden=m!=='range';
   $('#scenDuel').hidden=m!=='duel'; $('#duelPanel').hidden=m!=='duel';
   if(m==='range'&&net.code) duelLeave();
-  updateDuelUI(); renderStats();
+  updateDuelUI(); renderStats(); applyTheme();
 }
 document.querySelectorAll('input[name="mode"]').forEach(r=>r.addEventListener('change',()=>{ if(r.checked) setMode(r.value); }));
 $('#duelCreate').addEventListener('click',()=>{
@@ -1896,6 +1911,8 @@ bindSeg('rsize',()=>settings.range.size,v=>{ settings.range.size=v; renderStats(
 bindSeg('rmove',()=>settings.range.move,v=>{ settings.range.move=v; renderStats(); });
 bindChk('#optHsOnly',()=>settings.range.hs,v=>{ settings.range.hs=v; renderStats(); });
 bindChk('#optInfAmmo',()=>settings.range.inf,v=>settings.range.inf=v);
+bindSeg('rtheme',()=>settings.rangeTheme,v=>{ settings.rangeTheme=v; applyTheme(); });
+applyTheme();
 syncRangeUI();
 const vol=$('#inVol'); vol.value=settings.volume; vol.addEventListener('input',()=>{ settings.volume=parseFloat(vol.value); onChange(); });
 const col=$('#inChColor'); col.value=settings.ch.color; col.addEventListener('input',()=>{ settings.ch.color=col.value; onChange(); });
