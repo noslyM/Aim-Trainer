@@ -182,8 +182,8 @@ kbd{font-family:var(--f-display);background:var(--panel2);border:1px solid var(-
           </div>
           <div class="scenario" id="scenRange">
             <h2>Practice range</h2>
-            <h3>Six exercices pour travailler chaque facette de ton aim</h3>
-            <p>Flicks, réflexes, bots à la tête, peeks à tenir, tracking et contrôle du spray. Chaque exercice garde ton record selon ses réglages.</p>
+            <h3>Cinq exercices pour travailler chaque facette de ton aim</h3>
+            <p>Flicks, réflexes, bots à la tête, peeks à tenir et tracking. Chaque exercice garde ton record selon ses réglages.</p>
           </div>
           <div class="scenario" id="scenDuel" hidden>
             <h2>1v1 en ligne</h2>
@@ -206,7 +206,6 @@ kbd{font-family:var(--f-display);background:var(--panel2);border:1px solid var(-
                 <label><input type="radio" name="rmode" value="bots" id="rm3"><span>Bots</span></label>
                 <label><input type="radio" name="rmode" value="peek" id="rm4"><span>Peeks</span></label>
                 <label><input type="radio" name="rmode" value="track" id="rm5"><span>Tracking</span></label>
-                <label><input type="radio" name="rmode" value="spray" id="rm6"><span>Spray</span></label>
               </div>
               <p class="note" id="rModeDesc"></p>
             </div>
@@ -319,14 +318,14 @@ kbd{font-family:var(--f-display);background:var(--panel2);border:1px solid var(-
           <h2>Commandes</h2>
           <dl class="keys">
             <dt>ZQSD / WASD</dt><dd>Se déplacer (touches physiques, marche en AZERTY et QWERTY)</dd>
-            <dt>Maj</dt><dd>Marcher (silencieux, plus précis)</dd>
-            <dt>Ctrl ou C</dt><dd>S'accroupir. En QWERTY, préfère C : Ctrl+W ferme l'onglet.</dd>
+            <dt>Maj ou C</dt><dd>S'accroupir (appuie une fois pour s'accroupir, une fois pour se relever)</dd>
+            <dt>Ctrl</dt><dd>Marcher, silencieux et plus précis (appuie une fois pour marcher, une fois pour courir)</dd>
             <dt>Espace</dt><dd>Sauter</dd>
             <dt>Clic gauche</dt><dd>Tirer (auto à 9,75 balles/s)</dd>
             <dt>Clic droit</dt><dd>Viser (zoom ×1,25)</dd>
             <dt>R</dt><dd>Recharger</dd>
             <dt>K</dt><dd>Calibrer la sensi à la règle</dd>
-            <dt>Entrée / T</dt><dd>Range : relancer l'exercice / effacer les impacts</dd>
+            <dt>Entrée</dt><dd>Range : relancer l'exercice</dd>
             <dt>N / B</dt><dd>Diagnostic sensi / remise à zéro du compteur</dd>
             <dt>Échap</dt><dd>Pause et réglages</dd>
           </dl>
@@ -367,6 +366,7 @@ function loadSettings(){
 }
 let settings = loadSettings();
 settings.range=Object.assign({},DEFAULTS.range,settings.range||{}); settings.best=settings.best||{};
+if(settings.range.mode==='spray') settings.range.mode='grid';
 if((settings.sensV||0)<4){ settings.sensV=4; settings.sensS=1; settings.correction=1; saveSettings(); }
 function saveSettings(){ try{ localStorage.setItem(KEY, JSON.stringify(settings)); }catch(e){} }
 
@@ -673,6 +673,7 @@ let hp=100, shield=50, ammo=VANDAL.mag, reloading=false, reloadEnd=0, playerAliv
 let sprayIdx=0, recoilP=0, recoilY=0, recovering=false, recStart={i:0,p:0,y:0}, lastShot=-10, nextFire=0, driftSign=1;
 let mouseDown=false, ads=false, adsT=0, gunKick=0, bobT=0, flashT=0;
 const keys={};
+let crouchOn=false, walkOn=false; // accroupi (Maj / C) et marche lente (Ctrl), en mode bascule
 let locked=false, lockTime=0, rawActive=false, started=false, paused=true;
 let gameTime=0, frameStamp=performance.now();
 const now=()=>gameTime + (paused?0:(performance.now()-frameStamp)/1000);
@@ -1003,13 +1004,13 @@ function update(dt){
   if(banT>0){ banT-=dt; if(banT<=0) banEl.style.opacity=0; }
 
   // déplacement du joueur
-  const crouchKey=keys.KeyC||keys.ControlLeft||keys.ControlRight;
+  const crouchKey=crouchOn; // Maj ou C : bascule
   player.crouch+=((crouchKey&&playerAlive?1:0)-player.crouch)*Math.min(1,dt*12);
   let wx=0,wz=0;
   const frozen=mode==='duel'&&duelPh==='prep';
   if(playerAlive&&!frozen){ if(keys.KeyW) wz+=1; if(keys.KeyS) wz-=1; if(keys.KeyD) wx+=1; if(keys.KeyA) wx-=1; }
   const wl=Math.hypot(wx,wz); if(wl>0){ wx/=wl; wz/=wl; }
-  let maxS=(player.crouch>0.5?CROUCHV:(keys.ShiftLeft||keys.ShiftRight)?WALK:RUN)*P_SPEED; if(ads) maxS*=ADSV;
+  let maxS=(player.crouch>0.5?CROUCHV:walkOn?WALK:RUN)*P_SPEED; // Ctrl : marche en bascule if(ads) maxS*=ADSV;
   const fx=-Math.sin(yaw), fz=-Math.cos(yaw), rx=Math.cos(yaw), rz=-Math.sin(yaw);
   const tvx=(fx*wz+rx*wx)*maxS, tvz=(fz*wz+rz*wx)*maxS;
   // Accélération linéaire, comme les bots : la vitesse max arrive en ~0,3 s, un changement de direction passe par un arrêt.
@@ -1235,12 +1236,13 @@ document.addEventListener('keydown',ev=>{
     return;
   }
   keys[ev.code]=true;
+  if(ev.code==='ShiftLeft'||ev.code==='ShiftRight'||ev.code==='KeyC') crouchOn=!crouchOn;
+  if(ev.code==='ControlLeft'||ev.code==='ControlRight') walkOn=!walkOn;
   if(ev.code==='Space'&&player.onGround&&playerAlive&&!(mode==='duel'&&duelPh==='prep')){ player.vy=JUMP; player.onGround=false; }
   if(ev.code==='KeyR') startReload();
   if(ev.code==='KeyN'){ diag.on=!diag.on; diagEl.hidden=!diag.on; if(diag.on) renderDiag(); }
   if(ev.code==='KeyB'){ diag.counts=0; diag.countsY=0; if(diag.on) renderDiag(); }
   if(mode==='range'&&ev.code==='Enter') rangeBegin();
-  if(mode==='range'&&ev.code==='KeyT') clearDecals();
 });
 document.addEventListener('keyup',ev=>{ keys[ev.code]=false; });
 window.addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; mouseDown=false; });
@@ -1303,9 +1305,7 @@ const RANGE_MODES={
   peek:{name:'Peeks',count:20,opts:['dist','hs','inf'],
     desc:'Un bot sort de derrière l\'un des deux murs, s\'arrête un court instant puis retourne à couvert. Tue-le avant qu\'il disparaisse. 20 peeks.'},
   track:{name:'Tracking',timed:true,opts:['dur','dist','inf'],
-    desc:'Garde ton réticule sur un bot qui strafe sans arrêt. Score : pourcentage du temps passé sur lui. Tirer est facultatif.'},
-  spray:{name:'Spray',opts:['dist'],
-    desc:'Un mannequin devant un mur d\'impacts pour travailler ton contrôle du recul. Les impacts restent affichés, T les efface, R recharge. Sans limite de temps.'}
+    desc:'Garde ton réticule sur un bot qui strafe sans arrêt. Score : pourcentage du temps passé sur lui. Tirer est facultatif.'}
 };
 const R={mode:'grid',phase:'idle',t:0,cd:0,lastCd:null,dur:60,d:20,shots:0,hits:0,heads:0,kills:0,misses:0,count:0,times:[],
   balls:[],bot:null,next:0,appearAt:0,onT:0,total:0,spray:null,peek:null,history:[],hudKey:''};
@@ -1368,6 +1368,7 @@ function rangeBegin(){
   const s=settings.range; rangeClear(); clearDecals();
   R.mode=s.mode; R.dur=+s.dur||60; R.d=rangeDist();
   Object.assign(R,{t:0,cd:3,lastCd:null,shots:0,hits:0,heads:0,kills:0,misses:0,count:0,times:[],next:0,appearAt:0,onT:0,total:0,spray:null,lastSpray:null,peek:null,hudKey:''});
+  crouchOn=false; walkOn=false;
   player.pos.set(0,0,RANGE_Z0); player.vel.set(0,0,0); player.vy=0; player.onGround=true; yaw=0; pitch=0;
   hp=100; shield=50; ammo=VANDAL.mag; reloading=false; sprayIdx=0; recoilP=recoilY=0; playerAlive=true; deathT=0; ads=false;
   rs={shots:0,hits:0,heads:0,kills:0,one:0,ttk:[],start:gameTime};
@@ -1520,7 +1521,7 @@ function syncRangeUI(){
 }
 function renderRangeStats(){
   const saveMode=R.mode, rec=$('#records'), s=settings.range;
-  const rows=Object.keys(RANGE_MODES).filter(k=>k!=='spray').map(k=>{ R.mode=k; const b=settings.best[rangeKey()]; return `<div><span>${RANGE_MODES[k].name}</span><span>${b?'<b>'+b.label+'</b>':'–'}</span></div>`; });
+  const rows=Object.keys(RANGE_MODES).map(k=>{ R.mode=k; const b=settings.best[rangeKey()]; return `<div><span>${RANGE_MODES[k].name}</span><span>${b?'<b>'+b.label+'</b>':'–'}</span></div>`; });
   R.mode=saveMode;
   rec.innerHTML=`<p class="note">Records avec tes réglages actuels</p>`+rows.join('');
   const h=$('#history');
@@ -1714,6 +1715,7 @@ function duelHost(dt){
 function resetForDuelRound(s){
   duelRound=s.r;
   const role=myRole(s), sp=role==='def'?DUEL_SPAWN.def:DUEL_SPAWN.att;
+  crouchOn=false; walkOn=false;
   player.pos.set(sp.x,0,sp.z); player.vel.set(0,0,0); player.vy=0; player.onGround=true; player.crouch=0; yaw=sp.yaw; pitch=0;
   hp=100; shield=50; ammo=VANDAL.mag; reloading=false; sprayIdx=0; recoilP=recoilY=0; playerAlive=true; ads=false; deathT=0;
   rs={shots:0,hits:0,heads:0,kills:0,one:0,ttk:[],start:gameTime}; clearDecals();
