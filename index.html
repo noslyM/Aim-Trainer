@@ -109,6 +109,9 @@ button{font:inherit;cursor:pointer}
 .stat small{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 #history{display:grid;gap:4px;font-size:13.5px;font-variant-numeric:tabular-nums;color:#ccd4db}
 #history div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:5px 0}
+#records{display:grid;gap:4px;font-size:13.5px;font-variant-numeric:tabular-nums}
+#records div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:5px 0}
+#records b{color:var(--accent);font-weight:600}
 #history .w{color:var(--ok)} #history .l{color:var(--danger)}
 .chwrap{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:start}
 @media (max-width:420px){.chwrap{grid-template-columns:1fr}}
@@ -171,19 +174,19 @@ kbd{font-family:var(--f-display);background:var(--panel2);border:1px solid var(-
         <section class="hero">
           <div class="field"><span class="lbl">Mode</span>
             <div class="seg" id="segMode">
-              <label><input type="radio" name="mode" value="bots" id="m1" checked><span>Contre des bots</span></label>
+              <label><input type="radio" name="mode" value="range" id="m1" checked><span>Practice range</span></label>
               <label><input type="radio" name="mode" value="duel" id="m2"><span>1v1 en ligne</span></label>
             </div>
           </div>
-          <div class="scenario" id="scenBots">
-            <h2>Scénario</h2>
-            <h3>Tenir le site A depuis le fond</h3>
-            <p>Chaque round, les bots exécutent sur le site : parfois tous par Long, parfois tous par la Porte, parfois en split. Ils ripostent, strafent et s'accroupissent selon la difficulté.</p>
+          <div class="scenario" id="scenRange">
+            <h2>Practice range</h2>
+            <h3>Six exercices pour travailler chaque facette de ton aim</h3>
+            <p>Flicks, réflexes, bots à la tête, peeks à tenir, tracking et contrôle du spray. Chaque exercice garde ton record selon ses réglages.</p>
           </div>
           <div class="scenario" id="scenDuel" hidden>
             <h2>1v1 en ligne</h2>
             <h3>Un attaquant, un défenseur, une seule balle dans la tête suffit</h3>
-            <p>Les rôles s'inversent à chaque round. L'attaquant part de Long ou de la Porte (tiré au hasard), le défenseur tient le fond du site. Même Vandal, mêmes dégâts, 150 PV chacun.</p>
+            <p>Les rôles s'inversent à chaque round. L'attaquant part d'un spawn relié aux deux entrées et choisit librement Long ou la Porte ; le défenseur tient le fond du site. Même arme, mêmes dégâts, 150 PV chacun.</p>
           </div>
           <div class="duel" id="duelPanel" hidden>
             <div class="actions">
@@ -193,26 +196,32 @@ kbd{font-family:var(--f-display);background:var(--panel2);border:1px solid var(-
             </div>
             <p class="note" id="duelStatus">Connexion au salon…</p>
           </div>
-          <div id="botOpts" style="display:grid;gap:14px">
-          <div class="field"><span class="lbl">Difficulté</span>
-            <div class="seg" id="segDiff">
-              <label><input type="radio" name="diff" value="facile" id="d1"><span>Facile</span></label>
-              <label><input type="radio" name="diff" value="normal" id="d2"><span>Normal</span></label>
-              <label><input type="radio" name="diff" value="difficile" id="d3"><span>Difficile</span></label>
-              <label><input type="radio" name="diff" value="immortel" id="d4"><span>Immortel</span></label>
+          <div class="duel" id="rangePanel">
+            <div class="field"><span class="lbl">Exercice</span>
+              <div class="seg" id="segRMode">
+                <label><input type="radio" name="rmode" value="grid" id="rm1"><span>Gridshot</span></label>
+                <label><input type="radio" name="rmode" value="micro" id="rm2"><span>Réflexes</span></label>
+                <label><input type="radio" name="rmode" value="bots" id="rm3"><span>Bots</span></label>
+                <label><input type="radio" name="rmode" value="peek" id="rm4"><span>Peeks</span></label>
+                <label><input type="radio" name="rmode" value="track" id="rm5"><span>Tracking</span></label>
+                <label><input type="radio" name="rmode" value="spray" id="rm6"><span>Spray</span></label>
+              </div>
+              <p class="note" id="rModeDesc"></p>
             </div>
-          </div>
-          <div class="field"><span class="lbl">Ennemis par round</span>
-            <div class="seg" id="segEn">
-              <label><input type="radio" name="en" value="1" id="e1"><span>1</span></label>
-              <label><input type="radio" name="en" value="2" id="e2"><span>2</span></label>
-              <label><input type="radio" name="en" value="3" id="e3"><span>3</span></label>
-              <label><input type="radio" name="en" value="4" id="e4"><span>4</span></label>
-              <label><input type="radio" name="en" value="5" id="e5"><span>5</span></label>
+            <div class="field" data-ropt="dur"><span class="lbl">Durée</span>
+              <div class="seg"><label><input type="radio" name="rdur" value="30" id="rd1"><span>30 s</span></label><label><input type="radio" name="rdur" value="60" id="rd2"><span>60 s</span></label><label><input type="radio" name="rdur" value="90" id="rd3"><span>90 s</span></label></div>
             </div>
-          </div>
-          <div class="field"><label for="inESpeed">Vitesse des ennemis : <span id="roESpeed">85 %</span></label><input type="range" id="inESpeed" min="0.6" max="1" step="0.05"></div>
-          <label class="chk"><input type="checkbox" id="optFire"> Les ennemis ripostent</label>
+            <div class="field" data-ropt="dist"><span class="lbl">Distance</span>
+              <div class="seg"><label><input type="radio" name="rdist" value="10" id="rx1"><span>10 m</span></label><label><input type="radio" name="rdist" value="20" id="rx2"><span>20 m</span></label><label><input type="radio" name="rdist" value="30" id="rx3"><span>30 m</span></label><label data-ropt="mix"><input type="radio" name="rdist" value="mix" id="rx4"><span>Mixte</span></label></div>
+            </div>
+            <div class="field" data-ropt="size"><span class="lbl">Taille des cibles</span>
+              <div class="seg"><label><input type="radio" name="rsize" value="l" id="rs1"><span>Grande</span></label><label><input type="radio" name="rsize" value="m" id="rs2"><span>Moyenne</span></label><label><input type="radio" name="rsize" value="s" id="rs3"><span>Petite</span></label></div>
+            </div>
+            <div class="field" data-ropt="move"><span class="lbl">Les bots</span>
+              <div class="seg"><label><input type="radio" name="rmove" value="static" id="rv1"><span>Immobiles</span></label><label><input type="radio" name="rmove" value="strafe" id="rv2"><span>Strafent</span></label></div>
+            </div>
+            <label class="chk" data-ropt="hs"><input type="checkbox" id="optHsOnly"> Seuls les tirs à la tête comptent</label>
+            <label class="chk" data-ropt="inf"><input type="checkbox" id="optInfAmmo"> Munitions infinies</label>
           </div>
           <label class="chk"><input type="checkbox" id="optFs"> Plein écran au lancement (recommandé plutôt que F11)</label>
           <p class="note">* Performance baisse la résolution et coupe l'anticrénelage. Recharge la page après l'avoir choisie.</p>
@@ -235,7 +244,7 @@ kbd{font-family:var(--f-display);background:var(--panel2);border:1px solid var(-
 
         <section id="statsSec">
           <h2>Session</h2>
-          <div class="stats">
+          <div class="stats" id="duelStats">
             <div class="stat"><b id="stRounds">0 – 0</b><small>Rounds</small></div>
             <div class="stat"><b id="stKills">0</b><small>Kills</small></div>
             <div class="stat"><b id="stHs">–</b><small>% tête</small></div>
@@ -243,7 +252,8 @@ kbd{font-family:var(--f-display);background:var(--panel2);border:1px solid var(-
             <div class="stat"><b id="stTtk">–</b><small>Vu → kill</small></div>
             <div class="stat"><b id="stOne">–</b><small>One-taps</small></div>
           </div>
-          <div id="history"><p class="note">Tes rounds apparaîtront ici.</p></div>
+          <div id="records" hidden></div>
+          <div id="history"><p class="note">Tes résultats apparaîtront ici.</p></div>
         </section>
       </div>
 
@@ -315,6 +325,7 @@ kbd{font-family:var(--f-display);background:var(--panel2);border:1px solid var(-
             <dt>Clic droit</dt><dd>Viser (zoom ×1,25)</dd>
             <dt>R</dt><dd>Recharger</dd>
             <dt>K</dt><dd>Calibrer la sensi à la règle</dd>
+            <dt>Entrée / T</dt><dd>Range : relancer l'exercice / effacer les impacts</dd>
             <dt>N / B</dt><dd>Diagnostic sensi / remise à zéro du compteur</dd>
             <dt>Échap</dt><dd>Pause et réglages</dd>
           </dl>
@@ -337,7 +348,7 @@ const randi = (a,b)=>Math.floor(rand(a,b+1));
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 const fmt = (v,d)=>v.toFixed(d).replace('.',',');
 // État du mode 1v1 (déclaré tôt : utilisé par le HUD dès le chargement)
-let mode='bots', room=null, roomState='pending', remote=null;
+let mode='range', room=null, roomState='pending', remote=null;
 let duelHS=null, duelPh='wait', duelRound=0, duelApplied={r:-1,ph:''}, hostT=0;
 const net={code:null,host:false,oppPeer:null,opp:null,lastPres:null,snaps:[],lastHit:0,lastShot:0,hitSeq:0,shotSeq:0,myHits:[],myShots:[]};
 
@@ -345,7 +356,8 @@ if(!window.THREE){ document.getElementById('lockMsg').textContent = "Le moteur 3
 
 /* ---------------- Réglages ---------------- */
 const DEFAULTS = { sens:0.14, dpi:800, raw:true, correction:1, adsMult:1, adsToggle:false,
-  difficulty:'normal', enemies:4, returnFire:true, fullscreen:true, quality:'auto', showFps:true, enemySpeed:0.85, aspect:'native', chFollow:true, volume:0.6, highlight:'red', hitmarker:false,
+  difficulty:'normal', enemies:4, returnFire:true, fullscreen:true, quality:'auto', showFps:true, enemySpeed:0.85, aspect:'native', chFollow:true,
+  range:{mode:'grid',dur:'60',dist:'20',size:'m',move:'strafe',hs:false,inf:true}, best:{}, volume:0.6, highlight:'red', hitmarker:false,
   ch:{color:'#00ffff', len:4, thick:2, gap:3, dot:false, dotSize:3, outline:true} };
 const KEY='valoAimer.v1';
 function loadSettings(){
@@ -353,6 +365,7 @@ function loadSettings(){
   return JSON.parse(JSON.stringify(DEFAULTS));
 }
 let settings = loadSettings();
+settings.range=Object.assign({},DEFAULTS.range,settings.range||{}); settings.best=settings.best||{};
 function saveSettings(){ try{ localStorage.setItem(KEY, JSON.stringify(settings)); }catch(e){} }
 
 // still = temps immobile entre deux strafes (le temps de tirer une rafale), en secondes
@@ -436,7 +449,7 @@ const floorTex = canvasTex(512,512,(g,w,h)=>{
   noise(g,w,h,7000,.08);
   g.fillStyle='rgba(70,60,45,.28)'; g.fillRect(0,0,w,3); g.fillRect(0,256,w,3); g.fillRect(0,0,3,h); g.fillRect(256,0,3,h);
 });
-floorTex.repeat.set(30,30);
+floorTex.repeat.set(40,50);
 function crateTex(base,dark){ return canvasTex(256,256,(g,w,h)=>{
   g.fillStyle=base; g.fillRect(0,0,w,h); noise(g,w,h,2500,.1);
   g.strokeStyle=dark; g.lineWidth=20; g.strokeRect(10,10,w-20,h-20);
@@ -448,8 +461,8 @@ const floorMat = new THREE.MeshLambertMaterial({map:floorTex});
 const crateA = new THREE.MeshLambertMaterial({map:crateTex('#4a7d84','#2d545a')});
 const crateB = new THREE.MeshLambertMaterial({map:crateTex('#b5753f','#7c4c25')});
 
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(120,120), floorMat);
-floor.rotation.x = -Math.PI/2; floor.position.set(0,0,10); scene.add(floor);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(160,200), floorMat);
+floor.rotation.x = -Math.PI/2; floor.position.set(0,0,-20); scene.add(floor);
 
 const solids=[], boxes=[];
 function worldUVBox(x0,x1,y0,y1,z0,z1){
@@ -483,9 +496,13 @@ const crate=(x0,x1,z0,z1,h,mat,y0)=>addBlock(x0,x1,z0,z1,h,mat,false,y0);
 // Site (x -14..13, z -4..24)
 wallX(-4,-14,13); wallZ(-14,-4,24); wallX(24,-14,-12); wallX(24,-7,13); wallZ(13,-4,14); wallZ(13,17.5,24);
 // Long (entrée gauche de la carte, à droite du défenseur)
-wallZ(-12,24,31); wallZ(-7,24,36); wallX(36,-26,-7); wallX(31,-26,-12); wallZ(-26,31,36);
+wallZ(-12,24,31); wallZ(-7,24,38); wallX(36,-26,-12); wallX(31,-26,-12); wallZ(-26,31,36); wallZ(-12,36,46);
 // Porte (couloir coudé)
-wallX(14,13,21); wallX(17.5,13,17.5); wallZ(21,14,30); wallZ(17.5,17.5,30); wallX(30,17.5,21);
+wallX(14,13,21); wallX(17.5,13,17.5); wallZ(21,14,46); wallZ(17.5,17.5,38);
+// Spawn attaquant (x -12..21, z 38..46) : ouvert sur le couloir de Long (gauche) et celui de la Porte (droite)
+wallX(46,-12,21); wallX(38,-7,17.5);
+// Practice range : couloir de tir de 96 m, isolé de la carte
+wallX(-12,-20,20,6); wallZ(-20,-112,-12,6); wallZ(20,-112,-12,6); wallX(-112,-20,20,6);
 // Couverts
 crate(-2.2,0.2,7,9.4,2.0,crateA); crate(-1.9,-0.7,7.3,8.5,3.2,crateB,2.0);
 crate(-13.6,-11.4,15.5,17.7,1.8,crateA);
@@ -674,8 +691,9 @@ function fire(t){
   if(!playerAlive || reloading || phase==='end') return;
   if(mode==='duel' && duelPh!=='live') return;
   if(ammo<=0){ sfx('empty'); startReload(); return; }
-  ammo--; setMag();
+  if(!(mode==='range'&&settings.range.inf&&R.mode!=='spray')) ammo--; setMag();
   const n=Math.floor(sprayIdx+1e-6)+1; sprayIdx=n; recovering=false; lastShot=t;
+  if(mode==='range') rangeOnShot(n);
   const rm=ads?VANDAL.adsRecoilMult:1;
   recoilP+=(pitchCum(n)-pitchCum(n-1))*rm;
   if(n>=3) recoilY+=(Math.random()-0.5)*0.08;
@@ -689,11 +707,14 @@ function fire(t){
   ray.set(camera.position,dir); ray.near=0; ray.far=200;
   const list=solids.slice(); for(const e of enemies) if(e.state!=='dead'&&e.state!=='wait') for(const m of e.hits) list.push(m);
   if(mode==='duel'&&remote&&remote.state==='alive'&&remote.root.visible) for(const m of remote.hits) list.push(m);
+  if(mode==='range') rangeShootables(list);
   const hits=ray.intersectObjects(list,false);
   let end;
   if(hits.length){ const h=hits[0]; end=h.point;
     const ue=h.object.userData.enemy;
-    if(ue&&ue.remote) sendHit(ue,h.object.userData.zone);
+    if(h.object.userData.rangeBall) rangeBallHit(h.object,t);
+    else if(ue&&ue.rangeBot) rangeBotHit(ue,h.object.userData.zone,t);
+    else if(ue&&ue.remote) sendHit(ue,h.object.userData.zone);
     else if(ue) damageEnemy(ue,h.object.userData.zone,t);
     else if(h.face) addDecal(h.point,h.face.normal);
   } else end=_b.copy(camera.position).addScaledVector(dir,150);
@@ -952,6 +973,8 @@ function renderAlive(){
   $('#alive').innerHTML=enemies.map(e=>`<i class="${e.state==='dead'?'dead':''}"></i>`).join('');
 }
 function renderStats(){
+  const inRange=mode==='range'; $('#duelStats').hidden=inRange; $('#records').hidden=!inRange;
+  if(inRange){ try{ renderRangeStats(); }catch(e){} return; }
   $('#stRounds').textContent=`${sess.wins} – ${sess.losses}`;
   $('#stKills').textContent=sess.kills;
   $('#stHs').textContent=sess.hits?Math.round(sess.heads/sess.hits*100)+' %':'–';
@@ -970,9 +993,7 @@ function update(dt){
   const t=gameTime;
   // phases
   if(mode==='duel') duelTick(dt);
-  else if(phase==='prep'){ phaseT-=dt; if(phaseT<=0){ phase='live'; rs.start=t; } }
-  else if(phase==='live'){ if(t-rs.start>80) { feed('Temps écoulé','bad'); endRound(false); } }
-  else if(phase==='end'){ phaseT-=dt; if(phaseT<=0) startRound(); }
+  else if(mode==='range') rangeTick(dt);
   if(banT>0){ banT-=dt; if(banT<=0) banEl.style.opacity=0; }
 
   // déplacement du joueur
@@ -1202,7 +1223,7 @@ document.addEventListener('mousedown',ev=>{
 document.addEventListener('mouseup',ev=>{ if(ev.button===0) mouseDown=false; else if(ev.button===2&&!settings.adsToggle) ads=false; });
 document.addEventListener('contextmenu',ev=>{ if(locked) ev.preventDefault(); });
 canvas.addEventListener('contextmenu',ev=>ev.preventDefault());
-const GAME_KEYS=['KeyW','KeyA','KeyS','KeyD','KeyC','KeyR','KeyN','KeyB','KeyK','Space','Enter','ShiftLeft','ShiftRight','ControlLeft','ControlRight'];
+const GAME_KEYS=['KeyW','KeyA','KeyS','KeyD','KeyC','KeyR','KeyN','KeyB','KeyK','KeyT','Space','Enter','ShiftLeft','ShiftRight','ControlLeft','ControlRight'];
 document.addEventListener('keydown',ev=>{
   if(!locked) return;
   if(GAME_KEYS.includes(ev.code)||ev.ctrlKey) ev.preventDefault();
@@ -1218,6 +1239,8 @@ document.addEventListener('keydown',ev=>{
   if(ev.code==='KeyR') startReload();
   if(ev.code==='KeyN'){ diag.on=!diag.on; diagEl.hidden=!diag.on; if(diag.on) renderDiag(); }
   if(ev.code==='KeyB'){ diag.counts=0; diag.countsY=0; if(diag.on) renderDiag(); }
+  if(mode==='range'&&ev.code==='Enter') rangeBegin();
+  if(mode==='range'&&ev.code==='KeyT') clearDecals();
 });
 document.addEventListener('keyup',ev=>{ keys[ev.code]=false; });
 window.addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; mouseDown=false; });
@@ -1250,7 +1273,7 @@ document.addEventListener('pointerlockchange',()=>{
   if(locked){
     lockTime=performance.now(); frameStamp=lockTime; paused=false; resetSrc();
     $('#menu').hidden=true; $('#hud').hidden=false;
-    if(!started){ started=true; if(mode==='duel') duelBegin(); else startRound(); drawCrosshair(); }
+    if(!started){ started=true; if(mode==='duel') duelBegin(); else rangeBegin(); drawCrosshair(); }
   } else {
     paused=true; mouseDown=false; if(!settings.adsToggle) ads=false; for(const k in keys) keys[k]=false;
     $('#menu').hidden=false; $('#playBtn').textContent=started?'Reprendre':'Jouer'; renderStats(); renderHz();
@@ -1266,10 +1289,248 @@ $('#playBtn').addEventListener('click',()=>{
   }
   lockPointer();
 });
+/* ================= PRACTICE RANGE =================
+   Couloir de tir isolé (x -20..20, z -12..-112). Ligne de tir à z = -16, on vise vers -z.
+   Six exercices : Gridshot, Réflexes, Bots, Peeks, Tracking, Spray. */
+const RANGE_Z0=-16;
+const RANGE_MODES={
+  grid:{name:'Gridshot',timed:true,opts:['dur','dist','size','inf'],
+    desc:'Trois cibles fixes à abattre le plus vite possible. Chaque cible touchée réapparaît ailleurs sur une grille. Travaille tes flicks.'},
+  micro:{name:'Réflexes',count:25,opts:['dist','size','inf'],
+    desc:'Une petite cible apparaît n\'importe où après un délai aléatoire, et disparaît au bout de 2,5 s. Mesure ton temps de réaction sur 25 cibles.'},
+  bots:{name:'Bots',timed:true,opts:['dur','dist','mix','move','hs','inf'],
+    desc:'Des bots apparaissent un par un à différentes positions. Ils peuvent strafer comme de vrais joueurs (arrêt, puis direction au hasard). Tue-les le plus vite possible.'},
+  peek:{name:'Peeks',count:20,opts:['dist','hs','inf'],
+    desc:'Un bot sort de derrière l\'un des deux murs, s\'arrête un court instant puis retourne à couvert. Tue-le avant qu\'il disparaisse. 20 peeks.'},
+  track:{name:'Tracking',timed:true,opts:['dur','dist','inf'],
+    desc:'Garde ton réticule sur un bot qui strafe sans arrêt. Score : pourcentage du temps passé sur lui. Tirer est facultatif.'},
+  spray:{name:'Spray',opts:['dist'],
+    desc:'Un mannequin devant un mur d\'impacts pour travailler ton contrôle du recul. Les impacts restent affichés, T les efface, R recharge. Sans limite de temps.'}
+};
+const R={mode:'grid',phase:'idle',t:0,cd:0,lastCd:null,dur:60,d:20,shots:0,hits:0,heads:0,kills:0,misses:0,count:0,times:[],
+  balls:[],bot:null,next:0,appearAt:0,onT:0,total:0,spray:null,peek:null,history:[],hudKey:''};
+const rangeGroup=new THREE.Group(); scene.add(rangeGroup);
+const ballGeo=new THREE.SphereGeometry(1,22,16);
+const ballMat=new THREE.MeshLambertMaterial({color:0x3fd5ec,emissive:0x0c4a55});
+const ballOl=new THREE.MeshBasicMaterial({color:0x08181c,side:THREE.BackSide});
+const covers=[0,1].map(()=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(2.4,2.3,0.6),crateA); m.visible=false; rangeGroup.add(m); return m; });
+const sprayTex=canvasTex(700,450,(g,w,h)=>{
+  g.fillStyle='#d8d3c8'; g.fillRect(0,0,w,h); noise(g,w,h,3000,.06);
+  g.strokeStyle='rgba(60,55,45,.35)'; g.lineWidth=2; for(let x=0;x<=w;x+=50){ g.beginPath(); g.moveTo(x,0); g.lineTo(x,h); g.stroke(); } for(let y=0;y<=h;y+=50){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); }
+  g.strokeStyle='rgba(200,60,50,.55)'; g.lineWidth=3; g.beginPath(); g.moveTo(w/2,0); g.lineTo(w/2,h); g.stroke();
+},false);
+const sprayWall=new THREE.Mesh(new THREE.PlaneGeometry(7,4.5),new THREE.MeshLambertMaterial({map:sprayTex})); sprayWall.visible=false; rangeGroup.add(sprayWall);
+// Repères au sol tous les 10 m et ligne de tir
+(function(){
+  const line=new THREE.Mesh(new THREE.PlaneGeometry(40,0.12),new THREE.MeshBasicMaterial({color:0xe5a22c}));
+  line.rotation.x=-Math.PI/2; line.position.set(0,0.012,RANGE_Z0-0.8); scene.add(line);
+  for(let d=10;d<=90;d+=10){
+    const t=canvasTex(256,128,(g,w,h)=>{ g.fillStyle='rgba(20,22,26,.75)'; g.fillRect(0,0,w,h); g.fillStyle='#f2b134'; g.font='bold 78px "Chakra Petch",Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(d+' m',w/2,h/2+4); },false);
+    [-17.5,17.5].forEach(x=>{ const m=new THREE.Mesh(new THREE.PlaneGeometry(3,1.5),new THREE.MeshBasicMaterial({map:t,transparent:true})); m.rotation.x=-Math.PI/2; m.position.set(x,0.013,RANGE_Z0-d); scene.add(m); });
+    const st=new THREE.Mesh(new THREE.PlaneGeometry(40,0.05),new THREE.MeshBasicMaterial({color:0x7c7468})); st.rotation.x=-Math.PI/2; st.position.set(0,0.011,RANGE_Z0-d); scene.add(st);
+  }
+})();
+const rangePoint=(az,el,d)=>new THREE.Vector3(d*Math.tan(az*DEG), EYE+d*Math.tan(el*DEG), RANGE_Z0-d);
+const ballRadius=d=>d*Math.tan(({l:1.5,m:1.0,s:0.6}[settings.range.size]||1.0)*DEG);
+function rangeDist(){ const v=settings.range.dist; if(v==='mix') return R.mode==='bots'?rand(8,40):20; return +v||20; }
+function makeBall(r){ const m=new THREE.Mesh(ballGeo,ballMat); m.scale.setScalar(r); const o=new THREE.Mesh(ballGeo,ballOl); o.scale.setScalar(1.12); m.add(o); m.userData.rangeBall=true; rangeGroup.add(m); return m; }
+function ensureRangeBot(){
+  if(R.bot) return R.bot;
+  const b={rangeBot:true,label:'Bot',crouch:0,face:0,pos:new THREE.Vector3(),vx:0,hp:150,state:'alive',deadT:0,flash:0,flT:0,mv:'still',st:0,dir:1,minX:-6,maxX:6};
+  buildEnemy(b); b.root.visible=false; R.bot=b; return b;
+}
+function rangeSpawnBot(x,z){
+  const b=ensureRangeBot(); b.pos.set(x,0,z); b.vx=0; b.hp=150; b.state='alive'; b.deadT=0; b.body.rotation.x=0; b.root.visible=true;
+  b.mv='still'; b.st=rand(0.25,0.5); b.minX=Math.max(-17,x-3.5); b.maxX=Math.min(17,x+3.5); R.appearAt=gameTime; return b;
+}
+// Déplacement latéral avec les mêmes règles d'accélération que les joueurs
+function botAccel(b,want,dt){
+  const braking = want===0 || (b.vx!==0 && Math.sign(want)!==Math.sign(b.vx)) || Math.abs(want)<Math.abs(b.vx);
+  const rate=braking?E_DECEL:E_ACCEL; b.vx+=clamp(want-b.vx,-rate*dt,rate*dt); b.pos.x+=b.vx*dt;
+}
+function botStrafe(b,dt,still,dur){
+  b.st-=dt;
+  if(b.st<=0){ if(b.mv==='strafe'){ b.mv='still'; b.st=rand(still[0],still[1]); } else { b.mv='strafe'; b.dir=Math.random()<0.5?-1:1; b.st=rand(dur[0],dur[1]); } }
+  if(b.mv==='strafe'){ if(b.pos.x<=b.minX) b.dir=1; else if(b.pos.x>=b.maxX) b.dir=-1; }
+  botAccel(b,b.mv==='strafe'?b.dir*RUN*P_SPEED:0,dt);
+}
+function botMoveTo(b,tx,dt){ // va vers tx et freine pour s'y arrêter
+  const dx=tx-b.pos.x, stopD=b.vx*b.vx/(2*E_DECEL);
+  const want = (Math.abs(dx)<=stopD+0.03 || Math.abs(dx)<0.03) ? 0 : Math.sign(dx)*RUN*P_SPEED;
+  botAccel(b,want,dt); return Math.abs(dx);
+}
+function rangeClear(){
+  R.balls.forEach(m=>rangeGroup.remove(m)); R.balls=[];
+  if(R.bot){ R.bot.root.visible=false; R.bot.state='dead'; }
+  covers.forEach(c=>c.visible=false); sprayWall.visible=false; R.phase='idle'; R.spray=null;
+}
+function rangeBegin(){
+  const s=settings.range; rangeClear(); clearDecals();
+  R.mode=s.mode; R.dur=+s.dur||60; R.d=rangeDist();
+  Object.assign(R,{t:0,cd:3,lastCd:null,shots:0,hits:0,heads:0,kills:0,misses:0,count:0,times:[],next:0,appearAt:0,onT:0,total:0,spray:null,lastSpray:null,peek:null,hudKey:''});
+  player.pos.set(0,0,RANGE_Z0); player.vel.set(0,0,0); player.vy=0; player.onGround=true; yaw=0; pitch=0;
+  hp=100; shield=50; ammo=VANDAL.mag; reloading=false; sprayIdx=0; recoilP=recoilY=0; playerAlive=true; deathT=0; ads=false;
+  rs={shots:0,hits:0,heads:0,kills:0,one:0,ttk:[],start:gameTime};
+  $('#vitals').style.display='none'; setMag(); $('#reloadTxt').textContent='Vandal'; $('#rndTxt').textContent=RANGE_MODES[R.mode].name.toUpperCase();
+  if(R.mode==='spray'){ R.phase='run'; rangeStartRun(); banner('SPRAY','T efface les impacts · R recharge · Entrée relance',''); }
+  else { R.phase='count'; banner(RANGE_MODES[R.mode].name.toUpperCase(),'Prépare-toi…',''); }
+}
+function rangeStartRun(){
+  const t=gameTime, d=R.d, z=RANGE_Z0-d;
+  if(R.mode==='grid'){ for(let i=0;i<3;i++){ const m=makeBall(ballRadius(d)); R.balls.push(m); gridPlace(m); } }
+  else if(R.mode==='micro'){ const m=makeBall(ballRadius(d)); m.visible=false; R.balls.push(m); R.next=t+rand(0.5,1.2); }
+  else if(R.mode==='bots'){ R.next=t; }
+  else if(R.mode==='peek'){ covers[0].position.set(-3.2,1.15,z); covers[1].position.set(3.2,1.15,z); covers.forEach(c=>c.visible=true);
+    const b=rangeSpawnBot(-3.2,z-0.9); b.root.visible=true; R.peek={st:'wait',cover:-3.2,target:0,t:rand(0.8,1.6),exposed:false}; }
+  else if(R.mode==='track'){ const b=rangeSpawnBot(0,z); b.minX=-5.5; b.maxX=5.5; b.mv='strafe'; b.dir=1; b.st=0.5; }
+  else if(R.mode==='spray'){ rangeSpawnBot(0,z); sprayWall.position.set(0,2.25,z-0.7); sprayWall.visible=true; }
+}
+function gridPlace(ball){
+  const used=new Set(R.balls.filter(b=>b!==ball).map(b=>b.userData.cell)); let c;
+  do{ c=randi(0,24); }while(used.has(c)||c===ball.userData.cell);
+  ball.userData.cell=c; ball.position.copy(rangePoint([-16,-8,0,8,16][c%5],[-4,1,6,11,16][Math.floor(c/5)],R.d)); ball.userData.bornAt=gameTime;
+}
+function rangeShootables(list){
+  for(const m of R.balls) if(m.visible) list.push(m);
+  if(R.bot&&R.bot.state==='alive'&&R.bot.root.visible) for(const m of R.bot.hits) list.push(m);
+  for(const c of covers) if(c.visible) list.push(c);
+  if(sprayWall.visible) list.push(sprayWall);
+}
+function rangeOnShot(n){
+  if(R.phase==='run') R.shots++;
+  if(R.mode==='spray'){ if(n===1||!R.spray) R.spray={shots:0,hits:0,heads:0}; R.spray.shots++; }
+}
+function rangeBallHit(m,t){
+  if(R.phase!=='run') return;
+  R.hits++; sfx('head'); if(settings.hitmarker) showHit(false);
+  if(R.mode==='grid'){ R.kills++; R.times.push(t-m.userData.bornAt); gridPlace(m); }
+  else if(R.mode==='micro'){ R.kills++; const rt=t-R.appearAt; R.times.push(rt); feed(`Réaction · ${Math.round(rt*1000)} ms`,'good'); m.visible=false; R.count++; R.next=t+rand(0.4,1.3); }
+}
+function rangeBotHit(b,zone,t){
+  if(R.phase!=='run') return;
+  R.hits++; if(zone==='head') R.heads++; b.flash=0.07; sfx(zone==='head'?'head':'body'); if(settings.hitmarker) showHit(zone==='head');
+  if(R.mode==='track') return;
+  if(R.mode==='spray'){ if(R.spray){ R.spray.hits++; if(zone==='head') R.spray.heads++; } return; }
+  if(settings.range.hs&&zone!=='head') return;
+  b.hp-=VANDAL.dmg[zone]; if(b.hp>0) return;
+  b.state='dead'; b.deadT=0; R.kills++; setTimeout(()=>sfx('kill'),0);
+  const ttk=Math.max(0,t-(R.appearAt||t)); R.times.push(ttk);
+  feed(`${zone==='head'?'Tête':'Kill'} · ${fmt(ttk,2)} s`,'good');
+  if(R.mode==='bots') R.next=t+0.35;
+  else if(R.mode==='peek'){ R.count++; R.peek.st='dead'; R.peek.t=rand(0.9,1.8); }
+}
+function aimRayOnBot(){
+  const b=R.bot; if(!b||b.state!=='alive'||!b.root.visible) return false;
+  const aY=yaw+recoilY*DEG, aP=pitch+recoilP*DEG;
+  _d.set(-Math.sin(aY)*Math.cos(aP),Math.sin(aP),-Math.cos(aY)*Math.cos(aP));
+  ray.set(camera.position,_d); ray.near=0; ray.far=200;
+  return ray.intersectObjects(b.hits,false).length>0;
+}
+function rangeRun(dt,t){
+  const b=R.bot, z=RANGE_Z0-R.d;
+  if(R.mode==='micro'){
+    const m=R.balls[0]; if(!m) return;
+    if(!m.visible&&t>=R.next&&R.count<25){ R.d=rangeDist(); m.scale.setScalar(ballRadius(R.d)); m.position.copy(rangePoint(rand(-25,25),rand(-4,18),R.d)); m.visible=true; R.appearAt=t; }
+    else if(m.visible&&t-R.appearAt>2.5){ m.visible=false; R.misses++; R.count++; R.next=t+rand(0.4,1.2); feed('Raté','bad'); }
+    if(R.count>=25&&!m.visible) rangeFinish();
+  } else if(R.mode==='bots'){
+    if((!b||b.state!=='alive')&&t>=R.next){ const d=rangeDist(), x=rand(-1,1)*Math.min(9,d*0.35+2); rangeSpawnBot(x,RANGE_Z0-d); }
+    else if(b&&b.state==='alive'&&settings.range.move==='strafe') botStrafe(b,dt,[0.35,0.6],[0.22,0.45]);
+  } else if(R.mode==='peek'){
+    const p=R.peek; if(!p||!b) return;
+    if(p.st==='wait'||p.st==='dead'){ p.t-=dt; if(p.t<=0){ if(R.count>=20){ rangeFinish(); return; }
+        p.cover=Math.random()<0.5?-3.2:3.2; const side=Math.random()<0.5?-1:1; p.target=p.cover+side*2.7; p.exposed=false;
+        rangeSpawnBot(p.cover,z-0.9); p.st='out'; } }
+    else if(p.st==='out'){ if(botMoveTo(b,p.target,dt)<0.05&&Math.abs(b.vx)<0.05){ p.st='hold'; p.t=rand(0.25,0.7); } }
+    else if(p.st==='hold'){ b.vx=0; p.t-=dt; if(p.t<=0) p.st='back'; }
+    else if(p.st==='back'){ if(botMoveTo(b,p.cover,dt)<0.05&&Math.abs(b.vx)<0.05){ R.misses++; R.count++; b.root.visible=false; b.state='dead'; feed('Il s\'est remis à couvert','bad'); p.st='wait'; p.t=rand(0.8,1.8); } }
+    if(b.state==='alive'&&!p.exposed&&Math.abs(b.pos.x-p.cover)>1.45){ p.exposed=true; R.appearAt=t; }
+  } else if(R.mode==='track'){
+    if(b&&b.state==='alive'){ botStrafe(b,dt,[0.04,0.2],[0.3,0.9]); R.total+=dt; if(aimRayOnBot()) R.onT+=dt; }
+  } else if(R.mode==='spray'){
+    if(R.spray&&R.spray.shots>0&&sprayIdx===0&&!mouseDown){ const sp=R.spray; R.lastSpray=sp; R.spray=null;
+      feed(`Spray : ${sp.hits}/${sp.shots} touches · ${sp.heads} tête`,sp.hits/sp.shots>=0.6?'good':'bad'); }
+  }
+}
+function rangeBotAnim(dt){
+  const b=R.bot; if(!b||!b.root.visible) return;
+  b.face=Math.atan2(player.pos.x-b.pos.x,player.pos.z-b.pos.z);
+  if(b.state==='dead'){ b.deadT+=dt; const k=Math.min(1,b.deadT/0.3); b.body.rotation.x=-k*1.45; if(b.deadT>0.45) b.root.visible=false; }
+  pose(b); b.root.position.set(b.pos.x,0,b.pos.z); b.root.rotation.y=b.face;
+  if(b.flash>0){ b.flash-=dt; const v=b.flash>0?0.6:0; b.mats.torso.emissive.setScalar(v); b.mats.legs.emissive.setScalar(v); b.mats.head.emissive.setScalar(v); }
+}
+const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+function rangeKey(){
+  const s=settings.range, m=R.mode;
+  const parts={grid:[s.dur,s.dist,s.size],micro:[s.dist,s.size],bots:[s.dur,s.dist,s.move,s.hs?'hs':''],peek:[s.dist,s.hs?'hs':''],track:[s.dur,s.dist]}[m]||[];
+  return m+'|'+parts.join('|');
+}
+function rangeResult(){
+  const acc=R.shots?Math.round(R.hits/R.shots*100):0, hsP=R.hits?Math.round(R.heads/R.hits*100):0, m=R.mode;
+  if(m==='grid') return {score:R.kills,better:'high',label:`${R.kills} cibles`,line:`${R.kills} cibles · ${acc}% précision · ${fmt(R.kills/R.dur,2)} cibles/s`};
+  if(m==='micro'){ const a=avg(R.times); return {score:a!=null?Math.round(a*1000):null,better:'low',label:a!=null?`${Math.round(a*1000)} ms`:'–',line:`${R.kills}/25 touchées · réaction moyenne ${a!=null?Math.round(a*1000)+' ms':'–'} · ${acc}% précision`}; }
+  if(m==='bots'){ const a=avg(R.times); return {score:R.kills,better:'high',label:`${R.kills} kills`,line:`${R.kills} kills · ${hsP}% tête · ${acc}% précision · TTK moyen ${a!=null?fmt(a,2)+' s':'–'}`}; }
+  if(m==='peek'){ const a=avg(R.times); return {score:R.kills,better:'high',label:`${R.kills}/20`,line:`${R.kills}/20 peeks tués · réaction moyenne ${a!=null?Math.round(a*1000)+' ms':'–'} · ${acc}% précision`}; }
+  if(m==='track'){ const pct=R.total?Math.round(R.onT/R.total*100):0; return {score:pct,better:'high',label:`${pct} %`,line:`${pct}% du temps sur la cible${R.shots?' · '+acc+'% précision':''}`}; }
+  return null;
+}
+function rangeFinish(){
+  if(R.phase!=='run') return;
+  R.phase='done'; const res=rangeResult(); if(!res) return;
+  R.balls.forEach(m=>m.visible=false); if(R.bot){ R.bot.root.visible=false; R.bot.state='dead'; }
+  const key=rangeKey(), prev=settings.best[key];
+  const rec = res.score!=null && (prev==null || (res.better==='high'?res.score>prev.score:res.score<prev.score));
+  if(rec){ settings.best[key]={score:res.score,label:res.label}; saveSettings(); }
+  R.history.unshift({name:RANGE_MODES[R.mode].name,line:res.line,rec}); if(R.history.length>10) R.history.pop();
+  banner(rec?'NOUVEAU RECORD':'TERMINÉ',res.line+' · Entrée pour relancer',rec?'win':''); banT=7;
+  renderStats();
+}
+function rangeHud(){
+  const m=R.mode; let score='', right='';
+  if(m==='grid'||m==='bots') score=String(R.kills);
+  else if(m==='micro') score=`${R.kills}/${R.count}`;
+  else if(m==='peek') score=`${R.kills}/${R.count}`;
+  else if(m==='track') score=(R.total?Math.round(R.onT/R.total*100):0)+' %';
+  else if(m==='spray') score=R.lastSpray?`${R.lastSpray.hits}/${R.lastSpray.shots}`:'–';
+  if(RANGE_MODES[m].timed) right=(R.phase==='run'?Math.max(0,Math.ceil(R.dur-R.t)):R.phase==='count'?R.dur:0)+' s';
+  else if(m==='micro') right=`${Math.min(25,R.count)}/25`;
+  else if(m==='peek') right=`${Math.min(20,R.count)}/20`;
+  const k=score+'|'+right; if(k===R.hudKey) return; R.hudKey=k;
+  $('#scoreTxt').innerHTML=`<span class="w">${score}</span>`;
+  $('#alive').innerHTML=right?`<span style="font-size:15px;color:#cfd6dc;font-variant-numeric:tabular-nums">${right}</span>`:'';
+}
+function rangeTick(dt){
+  const t=gameTime;
+  if(R.phase==='count'){
+    R.cd-=dt; const s=Math.ceil(R.cd);
+    if(s!==R.lastCd&&s>0){ R.lastCd=s; banner(String(s),RANGE_MODES[R.mode].name,''); }
+    if(R.cd<=0){ R.phase='run'; R.t=0; banner('GO','',''); rangeStartRun(); }
+  } else if(R.phase==='run'){
+    R.t+=dt; rangeRun(dt,t);
+    if(RANGE_MODES[R.mode].timed&&R.t>=R.dur) rangeFinish();
+  }
+  rangeBotAnim(dt); rangeHud();
+}
+function syncRangeUI(){
+  const m=settings.range.mode, info=RANGE_MODES[m]||RANGE_MODES.grid;
+  $('#rModeDesc').textContent=info.desc;
+  document.querySelectorAll('[data-ropt]').forEach(el=>{ el.hidden=!info.opts.includes(el.getAttribute('data-ropt')); });
+  if(settings.range.dist==='mix'&&!info.opts.includes('mix')){ /* « Mixte » n'existe que pour les bots : 20 m par défaut ailleurs */ }
+  renderStats();
+}
+function renderRangeStats(){
+  const saveMode=R.mode, rec=$('#records'), s=settings.range;
+  const rows=Object.keys(RANGE_MODES).filter(k=>k!=='spray').map(k=>{ R.mode=k; const b=settings.best[rangeKey()]; return `<div><span>${RANGE_MODES[k].name}</span><span>${b?'<b>'+b.label+'</b>':'–'}</span></div>`; });
+  R.mode=saveMode;
+  rec.innerHTML=`<p class="note">Records avec tes réglages actuels</p>`+rows.join('');
+  const h=$('#history');
+  h.innerHTML=R.history.length?R.history.map(r=>`<div><span>${r.name}${r.rec?' · <span class="w">record</span>':''}</span><span>${r.line}</span></div>`).join(''):'<p class="note">Tes exercices terminés apparaîtront ici.</p>';
+}
+
 function hardReset(){
   newSession(); started=false; phase='idle'; enemies.forEach(e=>scene.remove(e.root)); enemies=[];
   player.pos.set(SPAWN.x,0,SPAWN.z); player.vel.set(0,0,0); yaw=Math.PI; pitch=0; playerAlive=true;
-  if(remote) remote.root.visible=false; duelApplied={r:-1,ph:''}; duelPh='wait';
+  if(remote) remote.root.visible=false; duelApplied={r:-1,ph:''}; duelPh='wait'; rangeClear(); $('#vitals').style.display='';
   $('#playBtn').textContent='Jouer'; $('#hud').hidden=true; drawCrosshair(); needsRender=true;
 }
 $('#resetBtn').addEventListener('click',hardReset);
@@ -1281,7 +1542,7 @@ $('#resetBtn').addEventListener('click',hardReset);
    Le créateur de la partie (hôte) arbitre les rounds : rôles, entrée de l'attaquant, score. */
 const r2=v=>Math.round(v*100)/100, r3=v=>Math.round(v*1000)/1000, r4=v=>Math.round(v*10000)/10000;
 const ZONES={h:'head',b:'body',l:'legs'};
-const DUEL_SPAWN={def:{x:0.6,z:-2.6,yaw:Math.PI}, long:{x:-22.5,z:33.5,yaw:-Math.PI/2}, porte:{x:19.25,z:27.5,yaw:0}};
+const DUEL_SPAWN={def:{x:0.6,z:-2.6,yaw:Math.PI}, att:{x:4.5,z:42.5,yaw:0}};
 const num=v=>typeof v==='number'&&isFinite(v);
 
 function ensureRemote(){
@@ -1452,7 +1713,7 @@ function duelHost(dt){
 }
 function resetForDuelRound(s){
   duelRound=s.r;
-  const role=myRole(s), sp=role==='def'?DUEL_SPAWN.def:DUEL_SPAWN[s.entry==='porte'?'porte':'long'];
+  const role=myRole(s), sp=role==='def'?DUEL_SPAWN.def:DUEL_SPAWN.att;
   player.pos.set(sp.x,0,sp.z); player.vel.set(0,0,0); player.vy=0; player.onGround=true; player.crouch=0; yaw=sp.yaw; pitch=0;
   hp=100; shield=50; ammo=VANDAL.mag; reloading=false; sprayIdx=0; recoilP=recoilY=0; playerAlive=true; ads=false; deathT=0;
   rs={shots:0,hits:0,heads:0,kills:0,one:0,ttk:[],start:gameTime}; clearDecals();
@@ -1470,7 +1731,7 @@ function applyDuelState(s){
   if(s.ph!==duelApplied.ph||s.r!==duelApplied.r){
     duelPh=s.ph;
     const role=myRole(s), entry=s.entry==='porte'?'la Porte':'Long';
-    if(s.ph==='prep') banner(`ROUND ${s.r}`, role==='att'?`Tu attaques depuis ${entry}`:'Tu défends le site. Il arrive par Long ou la Porte.','');
+    if(s.ph==='prep') banner(`ROUND ${s.r}`, role==='att'?'Tu attaques : Long à gauche, la Porte à droite. À toi de choisir.':'Tu défends le site. Il peut venir de Long ou de la Porte.','');
     else if(s.ph==='live') banner('GO','', '');
     else if(s.ph==='wait') banner('EN ATTENTE','Ton adversaire doit cliquer sur Jouer','');
     else if(s.ph==='end'){
@@ -1520,10 +1781,10 @@ function setMode(m){
   if(m===mode) return;
   if(started) hardReset();
   mode=m;
-  $('#scenBots').hidden=m!=='bots'; $('#botOpts').style.display=m==='bots'?'grid':'none';
+  $('#scenRange').hidden=m!=='range'; $('#rangePanel').hidden=m!=='range';
   $('#scenDuel').hidden=m!=='duel'; $('#duelPanel').hidden=m!=='duel';
-  if(m==='bots'&&net.code) duelLeave();
-  updateDuelUI();
+  if(m==='range'&&net.code) duelLeave();
+  updateDuelUI(); renderStats();
 }
 document.querySelectorAll('input[name="mode"]').forEach(r=>r.addEventListener('change',()=>{ if(r.checked) setMode(r.value); }));
 $('#duelCreate').addEventListener('click',()=>{
@@ -1614,7 +1875,6 @@ bindNum('#inAds',()=>settings.adsMult,v=>settings.adsMult=v);
 bindNum('#inCorr',()=>settings.correction,v=>settings.correction=v);
 bindChk('#optRaw',()=>settings.raw,v=>settings.raw=v);
 bindChk('#optAdsToggle',()=>settings.adsToggle,v=>settings.adsToggle=v);
-bindChk('#optFire',()=>settings.returnFire,v=>settings.returnFire=v);
 bindChk('#optFs',()=>settings.fullscreen,v=>settings.fullscreen=v);
 bindChk('#optFps',()=>settings.showFps,v=>{ settings.showFps=v; showFps(); });
 bindSeg('q',()=>settings.quality,v=>{ settings.quality=v; applyRenderSize(); needsRender=true; });
@@ -1622,13 +1882,18 @@ bindChk('#optHit',()=>settings.hitmarker,v=>settings.hitmarker=v);
 bindChk('#optDot',()=>settings.ch.dot,v=>settings.ch.dot=v);
 bindChk('#optOutline',()=>settings.ch.outline,v=>settings.ch.outline=v);
 bindChk('#optChFollow',()=>settings.chFollow,v=>settings.chFollow=v);
-bindSeg('diff',()=>settings.difficulty,v=>settings.difficulty=v);
-bindSeg('en',()=>settings.enemies,v=>settings.enemies=parseInt(v,10));
 bindSeg('hl',()=>settings.highlight,v=>settings.highlight=v);
 bindSeg('asp',()=>settings.aspect,v=>{ settings.aspect=v; applyAspect(); });
 [['#inChLen','len'],['#inChThick','thick'],['#inChGap','gap'],['#inChDot','dotSize']].forEach(([id,k])=>{ const el=$(id); el.value=settings.ch[k]; el.addEventListener('input',()=>{ settings.ch[k]=parseInt(el.value,10); onChange(); }); });
-const es=$('#inESpeed'); es.value=settings.enemySpeed; $('#roESpeed').textContent=Math.round(settings.enemySpeed*100)+' %';
-es.addEventListener('input',()=>{ settings.enemySpeed=parseFloat(es.value); $('#roESpeed').textContent=Math.round(settings.enemySpeed*100)+' %'; onChange(); });
+// Practice range : réglages
+bindSeg('rmode',()=>settings.range.mode,v=>{ settings.range.mode=v; syncRangeUI(); if(started&&mode==='range') rangeBegin(); });
+bindSeg('rdur',()=>settings.range.dur,v=>{ settings.range.dur=v; renderStats(); });
+bindSeg('rdist',()=>settings.range.dist,v=>{ settings.range.dist=v; renderStats(); });
+bindSeg('rsize',()=>settings.range.size,v=>{ settings.range.size=v; renderStats(); });
+bindSeg('rmove',()=>settings.range.move,v=>{ settings.range.move=v; renderStats(); });
+bindChk('#optHsOnly',()=>settings.range.hs,v=>{ settings.range.hs=v; renderStats(); });
+bindChk('#optInfAmmo',()=>settings.range.inf,v=>settings.range.inf=v);
+syncRangeUI();
 const vol=$('#inVol'); vol.value=settings.volume; vol.addEventListener('input',()=>{ settings.volume=parseFloat(vol.value); onChange(); });
 const col=$('#inChColor'); col.value=settings.ch.color; col.addEventListener('input',()=>{ settings.ch.color=col.value; onChange(); });
 onChange();
