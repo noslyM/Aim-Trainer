@@ -363,6 +363,8 @@ const DIFF = {
 };
 // Accélération des bots (m/s²) : ils ne changent plus de direction instantanément.
 const E_ACCEL=18, E_DECEL=26;
+// Joueurs (toi et ton adversaire en 1v1) : mêmes règles que les bots, vitesse générale à 85 %.
+const P_SPEED=0.85, P_COUNTER=34, P_FRICTION=16;
 const eRun=()=>RUN*settings.enemySpeed;
 const D = ()=>DIFF[settings.difficulty]||DIFF.normal;
 
@@ -657,8 +659,9 @@ function moveError(){
   // Très punitif en mouvement : dès qu'on dépasse ~0,75 m/s, l'imprécision grimpe vite (courbe concave).
   const s=Math.hypot(player.vel.x,player.vel.z), thr=0.75;
   if(s<=thr) return 0;
-  if(s<=WALK) return VANDAL.walkErr*Math.pow((s-thr)/(WALK-thr),0.6);
-  return VANDAL.walkErr+(VANDAL.runErr-VANDAL.walkErr)*clamp((s-WALK)/(RUN-WALK),0,1);
+  const W=WALK*P_SPEED, Rn=RUN*P_SPEED;
+  if(s<=W) return VANDAL.walkErr*Math.pow((s-thr)/(W-thr),0.6);
+  return VANDAL.walkErr+(VANDAL.runErr-VANDAL.walkErr)*clamp((s-W)/(Rn-W),0,1);
 }
 const dir=new THREE.Vector3();
 function muzzleWorld(out){
@@ -978,11 +981,19 @@ function update(dt){
   const frozen=mode==='duel'&&duelPh==='prep';
   if(playerAlive&&!frozen){ if(keys.KeyW) wz+=1; if(keys.KeyS) wz-=1; if(keys.KeyD) wx+=1; if(keys.KeyA) wx-=1; }
   const wl=Math.hypot(wx,wz); if(wl>0){ wx/=wl; wz/=wl; }
-  let maxS=player.crouch>0.5?CROUCHV:(keys.ShiftLeft||keys.ShiftRight)?WALK:RUN; if(ads) maxS*=ADSV;
+  let maxS=(player.crouch>0.5?CROUCHV:(keys.ShiftLeft||keys.ShiftRight)?WALK:RUN)*P_SPEED; if(ads) maxS*=ADSV;
   const fx=-Math.sin(yaw), fz=-Math.cos(yaw), rx=Math.cos(yaw), rz=-Math.sin(yaw);
   const tvx=(fx*wz+rx*wx)*maxS, tvz=(fz*wz+rz*wx)*maxS;
-  const kk=player.onGround?(wl>0?12:16):1.5, k=1-Math.exp(-dt*kk);
-  player.vel.x+=(tvx-player.vel.x)*k; player.vel.z+=(tvz-player.vel.z)*k;
+  // Accélération linéaire, comme les bots : la vitesse max arrive en ~0,3 s, un changement de direction passe par un arrêt.
+  // Contre-strafe (touche opposée) : freinage fort. Touches relâchées : freinage plus doux (on glisse un peu).
+  { const dvx=tvx-player.vel.x, dvz=tvz-player.vel.z, dl=Math.hypot(dvx,dvz);
+    if(dl>1e-4){
+      let rate;
+      if(!player.onGround) rate=2;
+      else { const vv=player.vel.x*player.vel.x+player.vel.z*player.vel.z, dot=tvx*player.vel.x+tvz*player.vel.z;
+        rate = wl===0 ? P_FRICTION : dot<0 ? P_COUNTER : dot<vv-1e-3 ? E_DECEL : E_ACCEL; }
+      const step=Math.min(dl,rate*dt); player.vel.x+=dvx/dl*step; player.vel.z+=dvz/dl*step;
+    } }
   const bl=slide(player.pos,player.vel.x*dt,player.vel.z*dt,PR,eyeH()+0.15);
   if(bl&1) player.vel.x=0; if(bl&2) player.vel.z=0;
   const gnd=groundAt(player.pos.x,player.pos.z,PR,player.pos.y);
@@ -1406,7 +1417,7 @@ function duelRemote(dt){
   else r.body.rotation.x=0;
   pose(r); r.root.position.set(r.pos.x,r.pos.y-(r.state==='dead'?Math.min(1,r.deadT/0.35)*0.08:0),r.pos.z); r.root.rotation.y=r.face;
   const v=b.v, sp=Math.hypot(v[0],v[1]);
-  if(r.state==='alive'&&sp>WALK*1.05){ r.stepT-=dt; if(r.stepT<=0){ r.stepT=0.31; _a.set(r.pos.x,r.pos.y+0.1,r.pos.z); sfx('step',_a); } }
+  if(r.state==='alive'&&sp>WALK*P_SPEED*1.05){ r.stepT-=dt; if(r.stepT<=0){ r.stepT=0.31; _a.set(r.pos.x,r.pos.y+0.1,r.pos.z); sfx('step',_a); } }
   if(r.flash>0){ r.flash-=dt; const fv=r.flash>0?0.6:0; r.mats.torso.emissive.setScalar(fv); r.mats.legs.emissive.setScalar(fv); r.mats.head.emissive.setScalar(fv); }
   if(r.flT>0){ r.flT-=dt; r.fl.visible=r.flT>0; r.fl.rotation.z=Math.random()*6.28; }
 }
