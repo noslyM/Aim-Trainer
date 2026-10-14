@@ -596,7 +596,8 @@ const flashTex = canvasTex(128,128,(g,w,h)=>{
 const flashMat=new THREE.MeshBasicMaterial({map:flashTex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});
 const vmFlash=new THREE.Mesh(new THREE.PlaneGeometry(0.16,0.16),flashMat); vmFlash.position.set(0,0.004,-0.80); vmFlash.visible=false; gun.add(vmFlash);
 // En visée, l'arme est avancée et abaissée : les organes de visée s'alignent juste sous le réticule et la crosse sort du champ.
-const GUN_HIP=new THREE.Vector3(0.15,-0.15,-0.50), GUN_ADS=new THREE.Vector3(0,-0.102,-0.24), GUN_HIP_YAW=0.04;
+// Position au repos façon Counter-Strike : arme en bas à droite, canon orienté vers le centre de l'écran.
+const GUN_HIP=new THREE.Vector3(0.24,-0.165,-0.52), GUN_ADS=new THREE.Vector3(0,-0.102,-0.24), GUN_HIP_YAW=0.09, GUN_HIP_ROLL=0.02;
 
 /* ---------------- Audio ---------------- */
 let actx=null, master=null, noiseBuf=null;
@@ -1044,7 +1045,7 @@ function update(dt){
   gun.position.x+=Math.sin(bobT)*0.006*(1-adsT)*Math.min(1,sp/RUN);
   gun.position.y+=-Math.abs(Math.cos(bobT))*0.006*(1-adsT)*Math.min(1,sp/RUN)-rl*0.07-(playerAlive?0:0.4);
   gun.position.z+=gunKick*0.035;
-  gun.rotation.set(gunKick*0.05-rl*0.55,GUN_HIP_YAW*(1-adsT),rl*0.25);
+  gun.rotation.set(gunKick*0.05-rl*0.55,GUN_HIP_YAW*(1-adsT),rl*0.25+GUN_HIP_ROLL*(1-adsT));
   if(flashT>0){ flashT-=dt; vmFlash.visible=flashT>0; }
   updateListener();
   setVitals();
