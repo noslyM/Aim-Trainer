@@ -1077,15 +1077,32 @@ function render(){
   renderer.clear(); renderer.render(scene,camera);
   if(started){ renderer.clearDepth(); renderer.render(vmScene,vmCam); }
 }
-function loop(ts){
-  requestAnimationFrame(loop);
+/* Une étape de jeu. En 1v1, la partie continue même quand le joueur est dans le menu (Échap)
+   ou sur un autre onglet : le jeu tourne, seul l'affichage s'arrête. Contre les bots, Échap met en pause. */
+function tick(ts){
   let dt=(ts-last)/1000; last=ts; dt=Math.min(Math.max(dt,0),0.05);
-  if(started&&!paused){ const c0=performance.now(); gameTime+=dt; frameStamp=ts; update(dt); render(); cpuMs=cpuMs*0.9+(performance.now()-c0)*0.1; }
+  const running=started&&(!paused||mode==='duel');
+  if(running){
+    const c0=performance.now(); gameTime+=dt; frameStamp=ts; update(dt);
+    if(!paused&&!document.hidden) render();
+    cpuMs=cpuMs*0.9+(performance.now()-c0)*0.1;
+  } else if(needsRender&&!document.hidden){ needsRender=false; camera.position.set(player.pos.x,player.pos.y+eyeH(),player.pos.z); camera.rotation.set(pitch,yaw,0); render(); }
   if(net.code) netPublish();
-  else if(needsRender){ needsRender=false; camera.position.set(player.pos.x,player.pos.y+eyeH(),player.pos.z); camera.rotation.set(pitch,yaw,0); render(); }
   diag.frames++; diag.acc+=dt;
   if(diag.acc>=0.5){ diag.fps=Math.round(diag.frames/diag.acc); diag.frames=0; diag.acc=0; if(diag.on) renderDiag(); showFps(); }
 }
+function loop(ts){ requestAnimationFrame(loop); if(!document.hidden) tick(ts); }
+// Onglet masqué : le navigateur coupe requestAnimationFrame, donc un petit worker cadence le jeu à ~30 Hz.
+let bgWorker=null;
+document.addEventListener('visibilitychange',()=>{
+  if(!bgWorker){ try{
+    const src='let t=null;onmessage=e=>{clearInterval(t);t=null;if(e.data==="start")t=setInterval(()=>postMessage(0),33);};';
+    bgWorker=new Worker(URL.createObjectURL(new Blob([src],{type:'text/javascript'})));
+    bgWorker.onmessage=()=>{ if(document.hidden) tick(performance.now()); };
+  }catch(e){ bgWorker=null; } }
+  if(bgWorker) bgWorker.postMessage(document.hidden&&mode==='duel'&&started?'start':'stop');
+  last=performance.now();
+});
 const fpsEl=$('#fps'), hzEl=$('#hzNote');
 function showFps(){
   const f=diag.fps;
@@ -1285,7 +1302,7 @@ function oppReady(){ return !!(net.opp&&net.opp.ready); }
 function netPublish(){
   if(!room) return;
   const p=player.pos;
-  const pres={duel:net.code, host:net.host, ready:started&&!paused&&mode==='duel',
+  const pres={duel:net.code, host:net.host, ready:started&&mode==='duel',
     p:[r3(p.x),r3(p.y),r3(p.z)], a:[r4(yaw),r4(pitch)], c:r2(player.crouch), v:[r2(player.vel.x),r2(player.vel.z)],
     hp:Math.ceil(hp+shield), al:playerAlive?1:0, rr:duelRound, sh:net.myShots, hi:net.myHits};
   if(net.host&&duelHS) pres.st=duelHS;
@@ -1495,7 +1512,7 @@ function updateDuelUI(){
       waiting:`Partie <b>${code}</b> créée. Donne ce code à ton adversaire, puis attends qu'il rejoigne.`
     }[peerState];
     if(peerState!=='connected'||!net.oppPeer){ st.innerHTML=msg||`Partie <b>${code}</b>…`; return; }
-    st.innerHTML=`Partie <b>${code}</b> · <span class="ok">Adversaire connecté</span>${oppReady()?' et en jeu':' (pas encore en jeu)'}. Clique sur Jouer.`; return;
+    st.innerHTML=`Partie <b>${code}</b> · <span class="ok">Adversaire connecté</span>${oppReady()?' et en jeu':' (pas encore en jeu)'}. ${started?'La partie continue pendant que tu es dans ce menu : clique sur Reprendre.':'Clique sur Jouer.'}`; return;
   }
   if(roomState==='pending'){ st.textContent='Connexion au salon…'; return; }
   if(!room){ st.innerHTML='Le 1v1 n\'est pas disponible dans cette vue : ton compte n\'a pas accès au canal en direct de cette page. Utilise plutôt la version hébergée du trainer, qui marche pour tout le monde.'; return; }
