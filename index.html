@@ -286,6 +286,7 @@ kbd{font-family:var(--f-display);background:var(--panel2);border:1px solid var(-
               <div class="actions">
                 <label class="chk"><input type="checkbox" id="optDot"> Point central</label>
                 <label class="chk"><input type="checkbox" id="optOutline"> Contour</label>
+                <label class="chk"><input type="checkbox" id="optChFollow"> Suit le recul</label>
               </div>
               <div class="field"><label for="inChDot">Taille du point</label><input type="range" id="inChDot" min="2" max="10" step="1"></div>
             </div>
@@ -344,7 +345,7 @@ if(!window.THREE){ document.getElementById('lockMsg').textContent = "Le moteur 3
 
 /* ---------------- Réglages ---------------- */
 const DEFAULTS = { sens:0.14, dpi:800, raw:true, correction:1, adsMult:1, adsToggle:false,
-  difficulty:'normal', enemies:4, returnFire:true, fullscreen:true, quality:'auto', showFps:true, enemySpeed:0.85, aspect:'native', volume:0.6, highlight:'red', hitmarker:false,
+  difficulty:'normal', enemies:4, returnFire:true, fullscreen:true, quality:'auto', showFps:true, enemySpeed:0.85, aspect:'native', chFollow:true, volume:0.6, highlight:'red', hitmarker:false,
   ch:{color:'#00ffff', len:4, thick:2, gap:3, dot:false, dotSize:3, outline:true} };
 const KEY='valoAimer.v1';
 function loadSettings(){
@@ -599,7 +600,7 @@ const flashMat=new THREE.MeshBasicMaterial({map:flashTex,transparent:true,blendi
 const vmFlash=new THREE.Mesh(new THREE.PlaneGeometry(0.16,0.16),flashMat); vmFlash.position.set(0,0.004,-0.80); vmFlash.visible=false; gun.add(vmFlash);
 // En visée, l'arme est avancée et abaissée : les organes de visée s'alignent juste sous le réticule et la crosse sort du champ.
 // Position au repos façon Counter-Strike : arme en bas à droite, canon orienté vers le centre de l'écran.
-const GUN_HIP=new THREE.Vector3(0.24,-0.165,-0.52), GUN_ADS=new THREE.Vector3(0,-0.102,-0.24), GUN_HIP_YAW=0.09, GUN_HIP_ROLL=0.02;
+const GUN_HIP=new THREE.Vector3(0.24,-0.19,-0.52), GUN_ADS=new THREE.Vector3(0,-0.102,-0.24), GUN_HIP_YAW=0.09, GUN_HIP_ROLL=0.02;
 
 /* ---------------- Audio ---------------- */
 let actx=null, master=null, noiseBuf=null;
@@ -1059,6 +1060,7 @@ function update(dt){
   gun.rotation.set(gunKick*0.05-rl*0.55,GUN_HIP_YAW*(1-adsT),rl*0.25+GUN_HIP_ROLL*(1-adsT));
   if(flashT>0){ flashT-=dt; vmFlash.visible=flashT>0; }
   updateListener();
+  updateCrosshairRecoil();
   setVitals();
 }
 
@@ -1563,11 +1565,22 @@ function drawCH(ctx,cx,cy,s,ch){
   if(ch.outline){ ctx.fillStyle='rgba(0,0,0,.6)'; rects.forEach(r=>ctx.fillRect(r[0]-o,r[1]-o,r[2]+2*o,r[3]+2*o)); if(ch.dot) dot(dr+o); }
   ctx.fillStyle=ch.color; rects.forEach(r=>ctx.fillRect(r[0],r[1],r[2],r[3])); if(ch.dot) dot(dr);
 }
+const chOff={x:0,y:0};
 function drawCrosshair(){
-  const dpr=window.devicePixelRatio||1; chCanvas.width=Math.round(innerWidth*dpr); chCanvas.height=Math.round(innerHeight*dpr);
-  const ctx=chCanvas.getContext('2d'); ctx.clearRect(0,0,chCanvas.width,chCanvas.height);
+  const dpr=window.devicePixelRatio||1, W=Math.round(innerWidth*dpr), H=Math.round(innerHeight*dpr);
+  if(chCanvas.width!==W||chCanvas.height!==H){ chCanvas.width=W; chCanvas.height=H; }
+  const ctx=chCanvas.getContext('2d'); ctx.clearRect(0,0,W,H);
   if(!started) return;
-  drawCH(ctx,Math.floor(chCanvas.width/2),Math.floor(chCanvas.height/2),chCanvas.height/1080,settings.ch);
+  drawCH(ctx,Math.floor(W/2+chOff.x),Math.floor(H/2+chOff.y),H/1080,settings.ch);
+}
+// Le réticule suit le recul (comme dans Valorant) : il se place là où partirait la prochaine balle, hors dispersion aléatoire.
+function updateCrosshairRecoil(){
+  let x=0,y=0;
+  if(settings.chFollow&&started){
+    const t=Math.tan(camera.fov*DEG/2), fy=(chCanvas.height/2)/t, fx=(chCanvas.width/2)/(t*camera.aspect);
+    x=-Math.tan(recoilY*DEG)*fx; y=-Math.tan(recoilP*DEG)*fy;
+  }
+  if(Math.abs(x-chOff.x)>0.3||Math.abs(y-chOff.y)>0.3){ chOff.x=x; chOff.y=y; drawCrosshair(); }
 }
 function drawPreview(){
   const c=$('#chPrev'), ctx=c.getContext('2d');
@@ -1608,6 +1621,7 @@ bindSeg('q',()=>settings.quality,v=>{ settings.quality=v; applyRenderSize(); nee
 bindChk('#optHit',()=>settings.hitmarker,v=>settings.hitmarker=v);
 bindChk('#optDot',()=>settings.ch.dot,v=>settings.ch.dot=v);
 bindChk('#optOutline',()=>settings.ch.outline,v=>settings.ch.outline=v);
+bindChk('#optChFollow',()=>settings.chFollow,v=>settings.chFollow=v);
 bindSeg('diff',()=>settings.difficulty,v=>settings.difficulty=v);
 bindSeg('en',()=>settings.enemies,v=>settings.enemies=parseInt(v,10));
 bindSeg('hl',()=>settings.highlight,v=>settings.highlight=v);
