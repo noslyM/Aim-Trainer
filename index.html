@@ -261,10 +261,14 @@ kbd{font-family:var(--f-display);background:var(--panel2);border:1px solid var(-
         <section>
           <h2>Sensibilité</h2>
           <div class="row2">
-            <div class="field"><label for="inSens">Sensi Valorant</label><input type="number" id="inSens" step="0.001" min="0.01" max="10"></div>
+            <div class="field" id="fCm"><label for="inCm">Distance d'un 360° (cm)</label><input type="number" id="inCm" step="0.01" min="5" max="500"></div>
+            <div class="field" id="fSens" hidden><label for="inSens">Sensi Valorant</label><input type="number" id="inSens" step="0.001" min="0.01" max="10"></div>
             <div class="field"><label for="inDpi">DPI souris</label><input type="number" id="inDpi" step="50" min="100" max="32000"></div>
           </div>
-          <div class="readout"><span>eDPI <b id="roEdpi">112</b></span><span><b id="roCm">116,6</b> cm / 360°</span><span>FOV <b>103°</b></span></div>
+          <div class="field"><span class="lbl">Je règle ma sensi avec</span>
+            <div class="seg"><label><input type="radio" name="smode" value="cm" id="sm1"><span>La distance d'un 360°</span></label><label><input type="radio" name="smode" value="val" id="sm2"><span>Ma sensi Valorant</span></label></div>
+          </div>
+          <div class="readout"><span><b id="roCm">116,6</b> cm / 360°</span><span>Sensi Valorant équivalente <b id="roVal">–</b></span><span>FOV <b>103°</b></span></div>
           <label class="chk"><input type="checkbox" id="optRaw"> Input brut de la souris (Chrome / Edge)</label>
           <div class="row2">
             <div class="field"><label for="inAds">Multiplicateur en visée</label><input type="number" id="inAds" step="0.01" min="0.1" max="3"></div>
@@ -279,7 +283,7 @@ kbd{font-family:var(--f-display);background:var(--panel2);border:1px solid var(-
               <label><input type="radio" name="asp" value="5:4" id="a4"><span>5:4 étiré</span></label>
             </div>
           </div>
-          <p class="note"><strong>Calibrer :</strong> en jeu, appuie sur <kbd>K</kbd> et suis les instructions. Tu glisses ta souris de 10 cm le long d'une règle et le trainer règle la correction tout seul (attendu : <strong id="roExpect">3150</strong> counts). <kbd>N</kbd> affiche le diagnostic.</p>
+          <p class="note"><strong>Vérifier en 30 secondes :</strong> en jeu, appuie sur <kbd>K</kbd>. Tu glisses ta souris de <strong id="roQuarter">29,2</strong> cm le long d'une règle (un quart de ton 360°) : ta vue doit tourner d'exactement 90°. Sinon, le trainer te dit pourquoi et corrige tout seul. <kbd>N</kbd> affiche le diagnostic.</p>
         </section>
 
         <section>
@@ -355,8 +359,8 @@ const net={code:null,host:false,oppPeer:null,opp:null,lastPres:null,snaps:[],las
 if(!window.THREE){ document.getElementById('lockMsg').textContent = "Le moteur 3D n'a pas pu se charger. Recharge la page."; return; }
 
 /* ---------------- Réglages ---------------- */
-const DEFAULTS = { sens:0.14, dpi:800, raw:true, correction:1, adsMult:1, adsToggle:false,
-  difficulty:'normal', enemies:4, returnFire:true, fullscreen:true, quality:'auto', showFps:true, enemySpeed:0.85, aspect:'native', chFollow:true,
+const DEFAULTS = { sens:0.28, dpi:400, raw:true, correction:1, adsMult:1, adsToggle:false,
+  difficulty:'normal', enemies:4, returnFire:true, fullscreen:true, quality:'auto', showFps:true, enemySpeed:0.85, aspect:'native', chFollow:true, sensMode:'cm', cm360:116.63, sensV:0,
   range:{mode:'grid',dur:'60',dist:'20',size:'m',move:'strafe',hs:false,inf:true}, best:{}, volume:0.6, highlight:'red', hitmarker:false,
   ch:{color:'#00ffff', len:4, thick:2, gap:3, dot:false, dotSize:3, outline:true} };
 const KEY='valoAimer.v1';
@@ -366,6 +370,7 @@ function loadSettings(){
 }
 let settings = loadSettings();
 settings.range=Object.assign({},DEFAULTS.range,settings.range||{}); settings.best=settings.best||{};
+if((settings.sensV||0)<3){ settings.sensV=3; settings.sensMode='cm'; settings.cm360=116.63; settings.dpi=400; settings.correction=1; saveSettings(); }
 function saveSettings(){ try{ localStorage.setItem(KEY, JSON.stringify(settings)); }catch(e){} }
 
 // still = temps immobile entre deux strafes (le temps de tirer une rafale), en secondes
@@ -398,6 +403,12 @@ const vfov=(aspect,zoom)=>2*Math.atan(Math.tan(103*DEG/2)/(zoom||1)/aspect)/DEG;
 const ASPECTS={'4:3':4/3,'5:4':5/4,'16:10':16/10};
 const gameAspect=()=>ASPECTS[settings.aspect]||innerWidth/innerHeight;
 const YAW_DEG=0.07; // degrés de rotation par count de souris à sensi 1 dans Valorant
+/* Sensibilité. Source de vérité : la distance d'un 360° (cm) et le DPI, ou bien la sensi Valorant et le DPI.
+   Degrés par count = 360 / (counts pour un 360°) = 360 / ((cm / 2,54) × DPI). La correction issue du test K s'y multiplie. */
+function degPerCount(){
+  const base = settings.sensMode==='val' ? YAW_DEG*settings.sens : 360/((settings.cm360/2.54)*settings.dpi);
+  return base*settings.correction;
+}
 
 /* ---------------- Three ---------------- */
 const renderer = new THREE.WebGLRenderer({antialias:settings.quality!=='perf', powerPreference:'high-performance'});
@@ -1138,14 +1149,14 @@ function renderDiag(){
   const s=settings, cm=cm360();
   let yd=((-yaw/DEG)%360+360)%360;
   diagEl.textContent=
-`Sensi ${fmt(s.sens,3)} × ${s.dpi} DPI · eDPI ${Math.round(s.sens*s.dpi)}
-${fmt(cm,1)} cm / 360°
+`${fmt(cm,2)} cm / 360° à ${s.dpi} DPI · ${fmt(degPerCount(),5)}° par count
+Sensi Valorant équivalente : ${fmt(valEquiv(),3)} · correction ×${fmt(s.correction,3)}
 Input brut : ${rawActive?'actif':'inactif'} · source ${inputSrc}${src.chosen?'':' (choix en cours)'}
 Reçu : mousemove ${src.mm} · rawupdate ${hasRawUpdate?src.raw:'n/a'}
 Format ${settings.aspect==='native'?'natif':settings.aspect+' étiré'} · FOV H 103° · V ${fmt(camera.fov,1)}°
 Lacet ${fmt(yd,1)}°  Tangage ${fmt(pitch/DEG,1)}°
 Counts X ${diag.counts}  Y ${diag.countsY}
-Attendu pour 10 cm : ${Math.round(s.dpi*10/2.54)}
+Attendu pour 10 cm : ${Math.round(s.dpi*10/2.54)} counts
 B : remettre à zéro · FPS ${diag.fps} · ${fmt(cpuMs,1)} ms
 GPU : ${gpuShort||'inconnu'}`;
 }
@@ -1173,7 +1184,7 @@ function onMouseDelta(dx,dy){
   if(!locked||paused) return;
   if(performance.now()-lockTime<80) return;
   if(calib.state==='measure'){ calib.counts+=dx; return; }
-  const k=YAW_DEG*settings.sens*settings.correction*DEG*(ads?settings.adsMult/VANDAL.zoom:1);
+  const k=degPerCount()*DEG*(ads?settings.adsMult/VANDAL.zoom:1);
   yaw-=dx*k; pitch-=dy*k; pitch=clamp(pitch,-89*DEG,89*DEG);
   diag.counts+=dx; diag.countsY+=dy;
 }
@@ -1190,28 +1201,36 @@ document.addEventListener('mousemove',ev=>{
   if(activeSrc()==='mm') onMouseDelta(ev.movementX,ev.movementY);
 });
 
-/* Calibration à la règle (touche K) : mesure les counts réels sur 10 cm et en déduit la correction. */
+/* Test K : quart de tour. On glisse la souris d'un quart de sa distance de 360° le long d'une règle ;
+   la vue doit tourner de 90°. On compare aussi les counts reçus au DPI annoncé pour trouver l'origine d'un écart. */
 const calib={state:'off',counts:0};
 const calibEl=()=>$('#calib');
 function calibShow(html){ const c=calibEl(); c.innerHTML=html; c.hidden=false; }
 function calibStep(){
-  const expected=settings.dpi*10/2.54;
+  const q=cm360()/4, qs=fmt(q,1);
   if(calib.state==='off'){ calib.state='ready'; mouseDown=false;
-    calibShow(`<b>Calibration à la règle</b><span>Pose ta souris contre le début d'une règle. Appuie sur <kbd>Espace</kbd>, glisse la souris de <b>10 cm</b> exactement vers la droite, puis appuie de nouveau sur <kbd>Espace</kbd>.</span><small>K pour annuler</small>`); }
+    calibShow(`<b>Test du quart de tour</b><span>Pose ta souris contre le début d'une règle. Appuie sur <kbd>Espace</kbd>, glisse la souris de <b>${qs} cm</b> exactement vers la droite (un quart de ton 360°), puis appuie de nouveau sur <kbd>Espace</kbd>.</span><small>K pour annuler</small>`); }
   else if(calib.state==='ready'){ calib.state='measure'; calib.counts=0;
-    calibShow(`<b>Mesure en cours…</b><span>Glisse de 10 cm vers la droite, puis <kbd>Espace</kbd>.</span><small>Attendu à ${settings.dpi} DPI : ${Math.round(expected)} counts</small>`); }
+    calibShow(`<b>Mesure en cours…</b><span>Glisse de ${qs} cm vers la droite, puis <kbd>Espace</kbd>.</span><small>La vue reste fixe pendant la mesure.</small>`); }
   else if(calib.state==='measure'){
     const m=Math.abs(calib.counts);
-    if(m<50){ calib.state='ready'; calibShow(`<b>Pas assez de mouvement</b><span>Je n'ai mesuré que ${m} counts. Recommence : <kbd>Espace</kbd>, 10 cm vers la droite, <kbd>Espace</kbd>.</span><small>K pour annuler</small>`); return; }
-    calib.state='result'; calib.result=expected/m;
-    const pct=Math.round((m/expected-1)*100);
-    calibShow(`<b>Mesuré : ${m} counts pour 10 cm</b><span>Attendu à ${settings.dpi} DPI : ${Math.round(expected)}. Écart : ${pct>0?'+':''}${pct} %. ${Math.abs(pct)<=4?'C\'est dans la marge d\'erreur d\'une mesure à la règle : la sensi est bonne.':'Appuie sur <kbd>Entrée</kbd> pour appliquer la correction.'}</span><small>Entrée : appliquer · Espace : recommencer · K : fermer</small>`); }
-  else { calib.state='off'; calibStep(); } // résultat affiché : Espace relance une mesure
+    if(m<30){ calib.state='ready'; calibShow(`<b>Pas assez de mouvement</b><span>Je n'ai reçu que ${m} counts. Recommence : <kbd>Espace</kbd>, ${qs} cm vers la droite, <kbd>Espace</kbd>.</span><small>K pour annuler</small>`); return; }
+    const angle=m*degPerCount(), expCounts=settings.dpi*q/2.54, ratio=m/expCounts;
+    calib.state='result'; calib.result=90/angle;
+    let why='';
+    if(Math.abs(angle-90)>4){
+      const guess=Math.round(settings.dpi*ratio/50)*50;
+      why = Math.abs(ratio-1)>0.15
+        ? `Ta souris a envoyé ${m} counts, alors qu'à ${settings.dpi} DPI elle aurait dû en envoyer ${Math.round(expCounts)}. Elle est sans doute réglée sur environ <b>${guess} DPI</b> : vérifie dans son logiciel, ou appuie sur <kbd>Entrée</kbd> pour corriger.`
+        : `Appuie sur <kbd>Entrée</kbd> pour corriger.`;
+    }
+    calibShow(`<b>Ta vue aurait tourné de ${fmt(angle,1)}° (attendu : 90°)</b><span>${Math.abs(angle-90)<=4?'C\'est dans la marge d\'erreur d\'une mesure à la règle : ta sensi est bonne.':why}</span><small>Entrée : corriger · Espace : recommencer · K : fermer</small>`); }
+  else { calib.state='off'; calibStep(); }
 }
 function calibApply(){
   if(calib.state!=='result') return;
   settings.correction=Math.round(settings.correction*calib.result*1000)/1000; $('#inCorr').value=settings.correction; onChange();
-  calibShow(`<b>Correction appliquée : ×${fmt(settings.correction,3)}</b><span>Ta sensi effective correspond maintenant à ${fmt(cm360(),1)} cm pour un 360°.</span><small>K pour fermer</small>`);
+  calibShow(`<b>Correction appliquée : ×${fmt(settings.correction,3)}</b><span>Le même geste de ${fmt(cm360()/4,1)} cm fait maintenant tourner ta vue de 90°.</span><small>K pour fermer</small>`);
   calib.state='done';
 }
 function calibClose(){ calib.state='off'; calibEl().hidden=true; }
@@ -1857,12 +1876,13 @@ function renderSwatches(){
 }
 
 /* ---------------- Liaisons du menu ---------------- */
-const cm360=()=>360/(0.07*settings.sens*settings.correction)/settings.dpi*2.54;
+const cm360=()=>360/degPerCount()/settings.dpi*2.54;
+const valEquiv=()=>degPerCount()/YAW_DEG;
 function onChange(){
   saveSettings();
-  $('#roEdpi').textContent=Math.round(settings.sens*settings.dpi);
-  $('#roCm').textContent=fmt(cm360(),1);
-  $('#roExpect').textContent=Math.round(settings.dpi*10/2.54);
+  $('#roCm').textContent=fmt(cm360(),2);
+  $('#roVal').textContent=fmt(valEquiv(),3)+' à '+settings.dpi+' DPI';
+  $('#roQuarter').textContent=fmt(cm360()/4,1);
   if(master) master.gain.value=settings.volume;
   drawPreview(); drawCrosshair(); renderSwatches();
 }
@@ -1870,6 +1890,10 @@ function bindNum(id,get,set){ const el=$(id); el.value=get(); el.addEventListene
 function bindChk(id,get,set){ const el=$(id); el.checked=get(); el.addEventListener('change',()=>{ set(el.checked); onChange(); }); }
 function bindSeg(name,get,set){ document.querySelectorAll(`input[name="${name}"]`).forEach(r=>{ r.checked=String(get())===r.value; r.addEventListener('change',()=>{ if(r.checked){ set(r.value); onChange(); } }); }); }
 bindNum('#inSens',()=>settings.sens,v=>settings.sens=v);
+bindNum('#inCm',()=>settings.cm360,v=>settings.cm360=v);
+function syncSensUI(){ $('#fCm').hidden=settings.sensMode!=='cm'; $('#fSens').hidden=settings.sensMode!=='val'; }
+bindSeg('smode',()=>settings.sensMode,v=>{ settings.sensMode=v; syncSensUI(); });
+syncSensUI();
 bindNum('#inDpi',()=>settings.dpi,v=>settings.dpi=v);
 bindNum('#inAds',()=>settings.adsMult,v=>settings.adsMult=v);
 bindNum('#inCorr',()=>settings.correction,v=>settings.correction=v);
